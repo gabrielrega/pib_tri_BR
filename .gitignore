@@ -1,0 +1,20 @@
+# R output
+Rplots.pdf
+*.Rhistory
+*.RData
+*.Rds
+*.rds
+
+# R environment
+.Rproj.user/
+.Renviron
+
+# Claude Code local config
+.claude/
+
+# Diagnostic/throwaway scripts
+diag_*.R
+
+# OS
+.DS_Store
+Thumbs.db
