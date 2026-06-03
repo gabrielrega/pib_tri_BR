@@ -164,7 +164,65 @@ cols_cesta <- function(painel) setdiff(names(painel), "date")
 
 # ---- 9. Orquestracao ---------------------------------------
 main <- function() {
-  cat("[early-read] main() ainda nao implementado\n")
+  # PIB trimestral (indice encadeado dessaz.) + YoY
+  pib_raw <- sidrar::get_sidra(x = 1621, variable = 584, period = "all",
+                               classific = "c11255", category = list(90707), format = 4)
+  pib <- pib_raw %>%
+    dplyr::transmute(trim = lubridate::yq(`Trimestre (Código)`),
+                     pib_idx = as.numeric(Valor)) %>%
+    dplyr::arrange(trim) %>%
+    dplyr::mutate(pib_yoy = (pib_idx / dplyr::lag(pib_idx, 4) - 1) * 100)
+
+  # Cesta rapida -> YoY mensal
+  painel  <- baixar_rapidos()
+  cols    <- cols_cesta(painel)
+  pan_yoy <- to_yoy(painel, cols)
+
+  # Trimestre-alvo: primeiro apos o ultimo PIB com >=1 indicador rapido
+  ult_trim <- pib %>% dplyr::filter(!is.na(pib_yoy)) %>% dplyr::pull(trim) %>% max()
+  alvo_trim <- as.Date(lubridate::floor_date(ult_trim %m+% months(3), "quarter"))
+  cesta_alvo <- agregar_trim_yoy(pan_yoy, cols, k = 3) %>% dplyr::filter(trim == alvo_trim)
+  k_disp <- if (nrow(cesta_alvo) == 0) 0L else as.integer(cesta_alvo$meses)
+
+  if (k_disp == 0L) {
+    cat(sprintf("[early-read] Sem indicadores rapidos para %dT%d ainda.\n",
+                lubridate::year(alvo_trim), lubridate::quarter(alvo_trim)))
+    return(invisible(NULL))
+  }
+  k_vint <- min(3L, k_disp)
+
+  # Ajuste no vintage correspondente + banda por vintage
+  cesta_k   <- agregar_trim_yoy(pan_yoy, cols, k = k_vint)
+  mapa      <- ajustar_mapa(pib %>% dplyr::select(trim, pib_yoy) %>%
+                              dplyr::inner_join(cesta_k, by = "trim"), cols)
+  linha_alvo <- cesta_k %>% dplyr::filter(trim == alvo_trim)
+  yoy_prev   <- prever_mapa(mapa, linha_alvo[, cols, drop = FALSE])
+
+  banda <- oos_vintage(pan_yoy, pib %>% dplyr::select(trim, pib_yoy), cols)
+  rmse_k <- banda$rmse[banda$k == k_vint]
+
+  # Conversao YoY -> QoQ via indices publicados
+  idx_lag1 <- pib %>% dplyr::filter(trim == alvo_trim %m-% months(3)) %>% dplyr::pull(pib_idx)
+  idx_lag4 <- pib %>% dplyr::filter(trim == alvo_trim %m-% months(12)) %>% dplyr::pull(pib_idx)
+  qoq_prev <- yoy_para_qoq(yoy_prev, idx_lag1, idx_lag4)
+  qoq_band <- function(z) yoy_para_qoq(c(yoy_prev - z*rmse_k, yoy_prev + z*rmse_k), idx_lag1, idx_lag4)
+
+  cat(sprintf("\n===== EARLY-READ %dT%d (ultimo PIB: %dT%d) =====\n",
+              lubridate::year(alvo_trim), lubridate::quarter(alvo_trim),
+              lubridate::year(ult_trim), lubridate::quarter(ult_trim)))
+  cat(sprintf("Indicadores (vintage k=%d): %s\n", k_vint, paste(cols, collapse = ", ")))
+  cat(sprintf("RMSE OOS (k=%d) = %.2f p.p. (YoY)\n\n", k_vint, rmse_k))
+  cat(sprintf("  %-10s %10s %10s\n", "", "QoQ", "YoY"))
+  cat(sprintf("  %-10s %+9.2f%% %+9.2f%%\n", "ponto", qoq_prev, yoy_prev))
+  b80q <- qoq_band(1.28); b90q <- qoq_band(1.64)
+  cat(sprintf("  %-10s [%+.2f, %+.2f] [%+.2f, %+.2f]\n", "banda 80%",
+              b80q[1], b80q[2], yoy_prev - 1.28*rmse_k, yoy_prev + 1.28*rmse_k))
+  cat(sprintf("  %-10s [%+.2f, %+.2f] [%+.2f, %+.2f]\n", "banda 90%",
+              b90q[1], b90q[2], yoy_prev - 1.64*rmse_k, yoy_prev + 1.64*rmse_k))
+  if (k_vint < 3L)
+    cat(sprintf("\n  [aviso] k=%d mes(es) -> leitura preliminar, banda larga.\n", k_vint))
+  cat("  Bridge oficial: rode nowcast_pib_bridge_v2_1.R (n/d enquanto IBC/PIM de abril nao sairem).\n")
+  invisible(list(trim = alvo_trim, qoq = qoq_prev, yoy = yoy_prev, rmse_k = rmse_k, k = k_vint))
 }
 
 if (Sys.getenv("EARLY_READ_TEST") != "1") {
