@@ -6,6 +6,8 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+## [0.2.0] - 2026-06-03
+
 ### Adicionado
 - Módulo early-read (`nowcast_early_read.R`): projeção precoce de PIB QoQ/YoY
   com banda por vintage, a partir de indicadores rápidos (SGS + Ipeadata:
