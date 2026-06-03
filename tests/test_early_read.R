@@ -17,4 +17,16 @@ stopifnot(is.na(r2$x[1]))                       # sem base 12m no inicio
 stopifnot(abs(r2$x[13] - 10) < 1e-9)            # 110/100 - 1 = 10%
 cat("OK: to_yoy\n")
 
+# agregar_trim_yoy: um trimestre com YoY mensais 1,2,3
+df_t3 <- data.frame(
+  date = as.Date(c("2021-01-01","2021-02-01","2021-03-01")),
+  x    = c(1, 2, 3)
+)
+a_k1 <- agregar_trim_yoy(df_t3, "x", k = 1)
+a_k3 <- agregar_trim_yoy(df_t3, "x", k = 3)
+stopifnot(abs(a_k1$x - 1) < 1e-9)        # so' janeiro
+stopifnot(abs(a_k3$x - 2) < 1e-9)        # media de 1,2,3
+stopifnot(a_k1$meses == 1, a_k3$meses == 3)
+cat("OK: agregar_trim_yoy\n")
+
 cat("OK: todos os testes passaram\n")

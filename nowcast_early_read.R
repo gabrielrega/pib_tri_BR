@@ -28,6 +28,23 @@ to_yoy <- function(df, cols) {
   df
 }
 
+# Agrega YoY mensal -> trimestral usando os primeiros k meses do trimestre.
+# Ragged edge: media dos meses disponiveis (YoY e' comparavel mes a mes).
+agregar_trim_yoy <- function(df_yoy, cols, k = 3) {
+  df_yoy %>%
+    dplyr::mutate(
+      trim = as.Date(lubridate::floor_date(date, "quarter")),
+      mes  = (lubridate::month(date) - 1) %% 3 + 1
+    ) %>%
+    dplyr::filter(mes <= k) %>%
+    dplyr::group_by(trim) %>%
+    dplyr::summarise(
+      meses = dplyr::n(),
+      dplyr::across(dplyr::all_of(cols), ~ mean(.x, na.rm = TRUE)),
+      .groups = "drop"
+    )
+}
+
 # ---- 9. Orquestracao ---------------------------------------
 main <- function() {
   cat("[early-read] main() ainda nao implementado\n")
