@@ -54,6 +54,32 @@ yoy_para_qoq <- function(yoy_prev, idx_lag1, idx_lag4) {
   (idx_t / idx_lag1 - 1) * 100
 }
 
+# Extrai n_pc componentes principais de uma matriz (cesta padronizada).
+fatores_pca <- function(mat, n_pc = 1) {
+  pr <- prcomp(mat, center = TRUE, scale. = TRUE)
+  list(scores = pr$x[, seq_len(n_pc), drop = FALSE], pca = pr)
+}
+
+# Ajusta pib_yoy ~ PCs sobre os casos completos da cesta.
+# Devolve o lm, o objeto prcomp (para projetar novas linhas), cols e n_pc.
+ajustar_mapa <- function(dados_trim, cols, n_pc = N_PC_DEFAULT) {
+  cc <- dados_trim %>% tidyr::drop_na(dplyr::all_of(c("pib_yoy", cols)))
+  fp <- fatores_pca(as.matrix(cc[cols]), n_pc)
+  df <- data.frame(pib_yoy = cc$pib_yoy, fp$scores)
+  names(df)[-1] <- paste0("PC", seq_len(n_pc))
+  form <- as.formula(paste("pib_yoy ~", paste(paste0("PC", seq_len(n_pc)), collapse = " + ")))
+  mod <- lm(form, data = df)
+  list(mod = mod, pca = fp$pca, cols = cols, n_pc = n_pc)
+}
+
+# Projeta uma linha (data.frame com as colunas da cesta) nos PCs e preve pib_yoy.
+prever_mapa <- function(mapa, linha_cols) {
+  sc <- predict(mapa$pca, newdata = as.matrix(linha_cols[mapa$cols]))[, seq_len(mapa$n_pc), drop = FALSE]
+  nd <- as.data.frame(sc)
+  names(nd) <- paste0("PC", seq_len(mapa$n_pc))
+  as.numeric(predict(mapa$mod, newdata = nd))
+}
+
 # ---- 9. Orquestracao ---------------------------------------
 main <- function() {
   cat("[early-read] main() ainda nao implementado\n")

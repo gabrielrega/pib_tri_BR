@@ -42,4 +42,25 @@ q4 <- yoy_para_qoq(yoy_prev = 4, idx_lag1 = 103, idx_lag4 = 100)
 stopifnot(abs(q4 - ((104/103 - 1) * 100)) < 1e-9)
 cat("OK: yoy_para_qoq\n")
 
+# Mapeamento: gera cesta sintetica onde pib_yoy depende de um fator comum.
+set.seed(1)
+n <- 60
+f <- rnorm(n)
+dados_t5 <- data.frame(
+  trim    = seq(as.Date("2005-01-01"), by = "quarter", length.out = n),
+  pib_yoy = 2 + 1.5 * f + rnorm(n, sd = 0.2),
+  a = f + rnorm(n, sd = 0.3),
+  b = f + rnorm(n, sd = 0.3),
+  c = f + rnorm(n, sd = 0.3)
+)
+cols_t5 <- c("a", "b", "c")
+mapa <- ajustar_mapa(dados_t5, cols_t5, n_pc = 1)
+stopifnot(inherits(mapa$mod, "lm"))
+# previsao em uma linha conhecida deve ser finita e razoavelmente perto do obs
+linha <- dados_t5[10, cols_t5, drop = FALSE]
+ph <- prever_mapa(mapa, linha)
+stopifnot(is.finite(ph))
+stopifnot(abs(ph - dados_t5$pib_yoy[10]) < 1.5)   # erro << escala do sinal
+cat("OK: ajustar_mapa/prever_mapa\n")
+
 cat("OK: todos os testes passaram\n")
