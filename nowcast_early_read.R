@@ -117,6 +117,51 @@ oos_vintage <- function(painel_yoy_mensal, pib_trim, cols, ks = 1:3,
                      n = sum(!is.na(erro)), .groups = "drop")
 }
 
+# Cesta de indicadores rapidos. SGS via rbcb; Ipeadata via ipeadatar.
+# Devolve painel mensal contiguo (grade completa de meses) com uma coluna
+# por indicador, em nivel.
+SGS_RAPIDOS <- c(veic_prod = 1373, veic_lic = 7384, energia = 1406,
+                 comex_exp = 22707, comex_imp = 22708, icc = 4393)
+IPEA_RAPIDOS <- c(icei = "CNI12_ICEIGER12", abpo = "ABPO12_PAPEL12")
+
+baixar_rapidos <- function(start_date = DATA_INICIO, end_date = Sys.Date(),
+                           usar_ipeadata = TRUE) {
+  # SGS
+  sgs <- rbcb::get_series(SGS_RAPIDOS, start_date = start_date, end_date = end_date)
+  pan <- purrr::reduce(sgs, dplyr::full_join, by = "date") %>%
+    dplyr::mutate(date = as.Date(date))
+  # comex em volume aproximado: usamos exp+imp (fluxo) como uma coluna
+  pan <- pan %>% dplyr::mutate(comex = .data$comex_exp + .data$comex_imp) %>%
+    dplyr::select(-comex_exp, -comex_imp)
+
+  # Ipeadata
+  if (usar_ipeadata && requireNamespace("ipeadatar", quietly = TRUE)) {
+    ip <- tryCatch(
+      ipeadatar::ipeadata(unname(IPEA_RAPIDOS)),
+      error = function(e) { message("[early-read] ipeadata falhou: ", conditionMessage(e)); NULL }
+    )
+    if (!is.null(ip)) {
+      ipw <- ip %>%
+        dplyr::transmute(date = as.Date(date), code, value) %>%
+        dplyr::filter(date >= start_date, date <= end_date) %>%
+        tidyr::pivot_wider(names_from = code, values_from = value)
+      # renomeia codigos -> rotulos amigaveis (IPEA_RAPIDOS ja' e' novo=antigo).
+      # rename(!!!pares) faz o splice; so' renomeia os codigos presentes.
+      presentes <- IPEA_RAPIDOS[IPEA_RAPIDOS %in% names(ipw)]
+      if (length(presentes) > 0) ipw <- dplyr::rename(ipw, !!!presentes)
+      pan <- dplyr::full_join(pan, ipw, by = "date")
+    }
+  }
+
+  # Grade mensal contigua (garante lag(12) = 12 meses calendario)
+  grade <- data.frame(date = seq(min(pan$date, na.rm = TRUE),
+                                 max(pan$date, na.rm = TRUE), by = "month"))
+  dplyr::left_join(grade, pan, by = "date") %>% dplyr::arrange(date)
+}
+
+# Colunas-indicador efetivamente disponiveis no painel coletado.
+cols_cesta <- function(painel) setdiff(names(painel), "date")
+
 # ---- 9. Orquestracao ---------------------------------------
 main <- function() {
   cat("[early-read] main() ainda nao implementado\n")
