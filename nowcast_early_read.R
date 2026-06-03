@@ -18,7 +18,15 @@ DATA_INICIO  <- as.Date("2000-01-01")
 MIN_OBS_OOS  <- 24
 N_PC_DEFAULT <- 1L
 
-# (funcoes definidas nas Tasks 2-8)
+# ---- 2. Funcoes puras --------------------------------------
+
+# Converte colunas de nivel para variacao YoY (12 meses).
+# Assume painel mensal contiguo e ordenado por data. Mantem 'date'.
+to_yoy <- function(df, cols) {
+  df <- df[order(df$date), , drop = FALSE]
+  for (c in cols) df[[c]] <- (df[[c]] / dplyr::lag(df[[c]], 12) - 1) * 100
+  df
+}
 
 # ---- 9. Orquestracao ---------------------------------------
 main <- function() {
