@@ -39,7 +39,9 @@ agregar_trim_yoy <- function(df_yoy, cols, k = 3) {
     dplyr::filter(mes <= k) %>%
     dplyr::group_by(trim) %>%
     dplyr::summarise(
-      meses = dplyr::n(),
+      # 'meses' antes do across: .data[[cols[1]]] deve ler o vetor original
+      # do grupo, nao a coluna ja' sumarizada (evita shadowing do nome).
+      meses = sum(!is.na(.data[[cols[1]]])),
       dplyr::across(dplyr::all_of(cols), ~ mean(.x, na.rm = TRUE)),
       .groups = "drop"
     )

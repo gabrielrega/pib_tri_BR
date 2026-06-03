@@ -27,6 +27,14 @@ a_k3 <- agregar_trim_yoy(df_t3, "x", k = 3)
 stopifnot(abs(a_k1$x - 1) < 1e-9)        # so' janeiro
 stopifnot(abs(a_k3$x - 2) < 1e-9)        # media de 1,2,3
 stopifnot(a_k1$meses == 1, a_k3$meses == 3)
+# ragged edge: mes presente na grade mas indicador ainda NA nao conta em 'meses'
+df_t3b <- data.frame(
+  date = as.Date(c("2021-01-01","2021-02-01","2021-03-01")),
+  x    = c(2, NA, NA)
+)
+a_k3b <- agregar_trim_yoy(df_t3b, "x", k = 3)
+stopifnot(a_k3b$meses == 1)              # so' janeiro tem dado
+stopifnot(abs(a_k3b$x - 2) < 1e-9)       # media ignora NAs
 cat("OK: agregar_trim_yoy\n")
 
 cat("OK: todos os testes passaram\n")
