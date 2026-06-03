@@ -74,4 +74,14 @@ rmse <- sqrt(mean(oos$erro^2, na.rm = TRUE))
 stopifnot(is.finite(rmse))
 cat("OK: oos_vintage_pronto\n")
 
+# excluir_covid_banda: tira 2020T2..2021T2 do pool de erros da banda
+df_cov <- tibble::tibble(
+  trim = as.Date(c("2019-01-01","2020-07-01","2021-01-01","2022-01-01")),
+  erro = c(1, 999, 999, 2)
+)
+kept <- excluir_covid_banda(df_cov)
+stopifnot(nrow(kept) == 2)
+stopifnot(all(kept$trim %in% as.Date(c("2019-01-01","2022-01-01"))))
+cat("OK: excluir_covid_banda\n")
+
 cat("OK: todos os testes passaram\n")

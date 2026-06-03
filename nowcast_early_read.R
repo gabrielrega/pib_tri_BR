@@ -18,6 +18,11 @@ DATA_INICIO  <- as.Date("2000-01-01")
 MIN_OBS_OOS  <- 24
 N_PC_DEFAULT <- 1L
 
+# Janela de base-COVID excluida do POOL DE ERROS da banda (so' da banda;
+# treino/PCA seguem usando tudo). No rebote pos-COVID o YoY de quantidades
+# (ex.: producao de veiculos +10000%) explode por base ~0, distorcendo o RMSE.
+COVID_BANDA <- as.Date(c("2020-04-01", "2021-04-01"))  # 2020T2 a 2021T2 inclusive
+
 # ---- 2. Funcoes puras --------------------------------------
 
 # Converte colunas de nivel para variacao YoY (12 meses).
@@ -103,8 +108,12 @@ oos_vintage_pronto <- function(painel_trim, pib_trim, cols, n_pc = N_PC_DEFAULT,
   dplyr::bind_rows(out) %>% dplyr::mutate(erro = obs - pred)
 }
 
+# Remove os trimestres da janela de base-COVID de um pool de erros OOS.
+excluir_covid_banda <- function(df)
+  dplyr::filter(df, !(trim >= COVID_BANDA[1] & trim <= COVID_BANDA[2]))
+
 # Para cada vintage k, agrega a cesta com k meses e roda o OOS.
-# Devolve RMSE por k (base da banda).
+# Devolve RMSE por k (base da banda), excluindo a janela base-COVID.
 oos_vintage <- function(painel_yoy_mensal, pib_trim, cols, ks = 1:3,
                         n_pc = N_PC_DEFAULT, min_obs = MIN_OBS_OOS) {
   purrr::map_dfr(ks, function(k) {
@@ -112,6 +121,7 @@ oos_vintage <- function(painel_yoy_mensal, pib_trim, cols, ks = 1:3,
     oos_vintage_pronto(tk, pib_trim, cols, n_pc, min_obs) %>%
       dplyr::mutate(k = k)
   }) %>%
+    excluir_covid_banda() %>%
     dplyr::group_by(k) %>%
     dplyr::summarise(rmse = sqrt(mean(erro^2, na.rm = TRUE)),
                      n = sum(!is.na(erro)), .groups = "drop")
