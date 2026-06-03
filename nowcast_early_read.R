@@ -29,7 +29,7 @@ COVID_BANDA <- as.Date(c("2020-04-01", "2021-04-01"))  # 2020T2 a 2021T2 inclusi
 # Assume painel mensal contiguo e ordenado por data. Mantem 'date'.
 to_yoy <- function(df, cols) {
   df <- df[order(df$date), , drop = FALSE]
-  for (c in cols) df[[c]] <- (df[[c]] / dplyr::lag(df[[c]], 12) - 1) * 100
+  for (nm in cols) df[[nm]] <- (df[[nm]] / dplyr::lag(df[[nm]], 12) - 1) * 100
   df
 }
 
@@ -46,6 +46,8 @@ agregar_trim_yoy <- function(df_yoy, cols, k = 3) {
     dplyr::summarise(
       # 'meses' antes do across: .data[[cols[1]]] deve ler o vetor original
       # do grupo, nao a coluna ja' sumarizada (evita shadowing do nome).
+      # Usa cols[1] como indicador de referencia do vintage -> cols[1] deve ser
+      # uma serie longa e de divulgacao rapida (ela define k_vint no main).
       meses = sum(!is.na(.data[[cols[1]]])),
       dplyr::across(dplyr::all_of(cols), ~ mean(.x, na.rm = TRUE)),
       .groups = "drop"
@@ -210,6 +212,12 @@ main <- function() {
 
   banda <- oos_vintage(pan_yoy, pib %>% dplyr::select(trim, pib_yoy), cols)
   rmse_k <- banda$rmse[banda$k == k_vint]
+  # Guard: se o pool OOS (pos-exclusao COVID) ficar vazio para este vintage,
+  # rmse_k vira numeric(0) e a banda sairia como [NA, NA] silenciosamente.
+  if (length(rmse_k) != 1L || !is.finite(rmse_k)) {
+    warning(sprintf("[early-read] RMSE OOS indisponivel para k=%d; banda omitida.", k_vint))
+    rmse_k <- NA_real_
+  }
 
   # Conversao YoY -> QoQ via indices publicados
   idx_lag1 <- pib %>% dplyr::filter(trim == alvo_trim %m-% months(3)) %>% dplyr::pull(pib_idx)
@@ -221,14 +229,18 @@ main <- function() {
               lubridate::year(alvo_trim), lubridate::quarter(alvo_trim),
               lubridate::year(ult_trim), lubridate::quarter(ult_trim)))
   cat(sprintf("Indicadores (vintage k=%d): %s\n", k_vint, paste(cols, collapse = ", ")))
-  cat(sprintf("RMSE OOS (k=%d) = %.2f p.p. (YoY)\n\n", k_vint, rmse_k))
   cat(sprintf("  %-10s %10s %10s\n", "", "QoQ", "YoY"))
   cat(sprintf("  %-10s %+9.2f%% %+9.2f%%\n", "ponto", qoq_prev, yoy_prev))
-  b80q <- qoq_band(1.28); b90q <- qoq_band(1.64)
-  cat(sprintf("  %-10s [%+.2f, %+.2f] [%+.2f, %+.2f]\n", "banda 80%",
-              b80q[1], b80q[2], yoy_prev - 1.28*rmse_k, yoy_prev + 1.28*rmse_k))
-  cat(sprintf("  %-10s [%+.2f, %+.2f] [%+.2f, %+.2f]\n", "banda 90%",
-              b90q[1], b90q[2], yoy_prev - 1.64*rmse_k, yoy_prev + 1.64*rmse_k))
+  if (is.na(rmse_k)) {
+    cat("  (banda indisponivel: sem pool OOS suficiente)\n")
+  } else {
+    cat(sprintf("  RMSE OOS (k=%d) = %.2f p.p. (YoY)\n", k_vint, rmse_k))
+    b80q <- qoq_band(1.28); b90q <- qoq_band(1.64)
+    cat(sprintf("  %-10s [%+.2f, %+.2f] [%+.2f, %+.2f]\n", "banda 80%",
+                b80q[1], b80q[2], yoy_prev - 1.28*rmse_k, yoy_prev + 1.28*rmse_k))
+    cat(sprintf("  %-10s [%+.2f, %+.2f] [%+.2f, %+.2f]\n", "banda 90%",
+                b90q[1], b90q[2], yoy_prev - 1.64*rmse_k, yoy_prev + 1.64*rmse_k))
+  }
   if (k_vint < 3L)
     cat(sprintf("\n  [aviso] k=%d mes(es) -> leitura preliminar, banda larga.\n", k_vint))
   cat("  Bridge oficial: rode nowcast_pib_bridge_v2_1.R (n/d enquanto IBC/PIM de abril nao sairem).\n")
