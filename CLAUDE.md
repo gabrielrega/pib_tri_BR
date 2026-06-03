@@ -74,3 +74,4 @@ SIDRA column name is `"Trimestre (Código)"` (with accent) — not `"Trimestre (
 | `nowcast_pib_bridge.R` | v1 — bridge equations only, archived |
 | `nowcast_pib_bridge_v2.R` | v2 — added AR(1), COVID dummies, archived |
 | `nowcast_pib_bridge_v2_1.R` | **active** — added PMS, MIDAS, vintage OOS, combo |
+| `nowcast_early_read.R` | **módulo paralelo** — early-read precoce via indicadores rápidos (SGS+Ipeadata); QoQ/YoY com banda por vintage. Não substitui o oficial. Testes em `tests/test_early_read.R`. |

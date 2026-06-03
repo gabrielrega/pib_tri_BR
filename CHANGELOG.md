@@ -6,6 +6,16 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado
+- Módulo early-read (`nowcast_early_read.R`): projeção precoce de PIB QoQ/YoY
+  com banda por vintage, a partir de indicadores rápidos (SGS + Ipeadata:
+  produção e licenciamento de veículos, energia, comércio exterior, confiança
+  do consumidor ICC e industrial ICEI, papelão ABPO). Features em YoY (mata
+  sazonalidade sem X-13), fator PCA → `pib_yoy`, convertido para QoQ via índices
+  publicados. Banda do pseudo-OOS estratificada por nº de meses, excluindo a
+  janela base-COVID (2020T2–2021T2). Backtest 2026T1 (k=1): erro de **0,34 p.p.**
+  vs ~0,91 do bridge — o early-read vê a força do trimestre que o oficial perdeu.
+
 ### Modificado
 - Documentada limitação conhecida de *ragged edge* no nowcast (ver CLAUDE.md,
   "Limitações conhecidas").
