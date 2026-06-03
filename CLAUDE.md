@@ -41,6 +41,20 @@ The active file is **`nowcast_pib_bridge_v2_1.R`**. All logic lives in one scrip
 
 **Combo weights exclude AR(1)**: `combo_pesos` is computed only over `full v1` and `full v2`. Including AR(1) degrades the combination.
 
+## Limitações conhecidas
+
+**Ragged edge em tempo real (avaliação 2026T1).** A agregação mensal→trimestral
+usa `mean(..., na.rm=TRUE)` sobre os meses disponíveis, o que assume implicitamente
+que os meses já observados representam o trimestre inteiro. Quando há forte
+aceleração (ou desaceleração) intratrimestral, vintages de 1–2 meses erram muito:
+no 2026T1 (PIB realizado +1,10% QoQ) as previsões com 1–2 meses ficaram em +0,2% a
++0,6%, porque janeiro veio fraco e março saltou ~10% no IBC-Br. Com os 3 meses o
+erro cai para ~0,05 p.p. Além disso, proxies de 1 mês são muito ruidosas (o sinal
+QoQ de PIM com apenas janeiro foi −15,8%). Não é bug nem erro de especificação — é
+um limite estrutural do método com dados parciais. Melhorias possíveis (não
+implementadas): prever os meses faltantes antes de agregar, ou re-pesar a
+combinação a favor do AR(1)/prior quando `meses_disp < 3`.
+
 ## Data sources
 
 | Series | Source | Code |
