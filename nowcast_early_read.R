@@ -80,6 +80,43 @@ prever_mapa <- function(mapa, linha_cols) {
   as.numeric(predict(mapa$mod, newdata = nd))
 }
 
+# Rolling pseudo-OOS sobre um data frame trimestral ja' montado
+# (trim, pib_yoy + colunas da cesta). Devolve erros por trimestre.
+oos_vintage_pronto <- function(painel_trim, pib_trim, cols, n_pc = N_PC_DEFAULT,
+                               min_obs = MIN_OBS_OOS) {
+  dd <- pib_trim %>%
+    dplyr::inner_join(painel_trim, by = "trim") %>%
+    tidyr::drop_na(dplyr::all_of(c("pib_yoy", cols))) %>%
+    dplyr::arrange(trim)
+  out <- list()
+  if (nrow(dd) <= min_obs) return(tibble::tibble(trim = as.Date(character()),
+                                                 obs = numeric(), pred = numeric(),
+                                                 erro = numeric()))
+  for (i in (min_obs + 1):nrow(dd)) {
+    tr <- dd[1:(i - 1), ]
+    te <- dd[i, ]
+    mp <- tryCatch(ajustar_mapa(tr, cols, n_pc), error = function(e) NULL)
+    if (is.null(mp)) next
+    ph <- tryCatch(prever_mapa(mp, te[, cols, drop = FALSE]), error = function(e) NA_real_)
+    out[[length(out) + 1]] <- tibble::tibble(trim = te$trim, obs = te$pib_yoy, pred = ph)
+  }
+  dplyr::bind_rows(out) %>% dplyr::mutate(erro = obs - pred)
+}
+
+# Para cada vintage k, agrega a cesta com k meses e roda o OOS.
+# Devolve RMSE por k (base da banda).
+oos_vintage <- function(painel_yoy_mensal, pib_trim, cols, ks = 1:3,
+                        n_pc = N_PC_DEFAULT, min_obs = MIN_OBS_OOS) {
+  purrr::map_dfr(ks, function(k) {
+    tk <- agregar_trim_yoy(painel_yoy_mensal, cols, k)
+    oos_vintage_pronto(tk, pib_trim, cols, n_pc, min_obs) %>%
+      dplyr::mutate(k = k)
+  }) %>%
+    dplyr::group_by(k) %>%
+    dplyr::summarise(rmse = sqrt(mean(erro^2, na.rm = TRUE)),
+                     n = sum(!is.na(erro)), .groups = "drop")
+}
+
 # ---- 9. Orquestracao ---------------------------------------
 main <- function() {
   cat("[early-read] main() ainda nao implementado\n")

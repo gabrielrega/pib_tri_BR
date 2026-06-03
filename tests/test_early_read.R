@@ -63,4 +63,15 @@ stopifnot(is.finite(ph))
 stopifnot(abs(ph - dados_t5$pib_yoy[10]) < 1.5)   # erro << escala do sinal
 cat("OK: ajustar_mapa/prever_mapa\n")
 
+# oos_vintage: painel YoY trimestral sintetico ja' agregado (1 ponto/trim).
+# Reusa dados_t5 (cesta a,b,c) como se ja' fossem YoY trimestrais.
+pib_t6 <- dados_t5[, c("trim", "pib_yoy")]
+painel_t6 <- dados_t5[, c("trim", cols_t5)]
+oos <- oos_vintage_pronto(painel_t6, pib_t6, cols_t5, n_pc = 1, min_obs = 24)
+stopifnot(all(c("trim", "obs", "pred", "erro") %in% names(oos)))
+stopifnot(nrow(oos) > 0)
+rmse <- sqrt(mean(oos$erro^2, na.rm = TRUE))
+stopifnot(is.finite(rmse))
+cat("OK: oos_vintage_pronto\n")
+
 cat("OK: todos os testes passaram\n")
