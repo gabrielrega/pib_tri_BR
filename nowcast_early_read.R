@@ -47,6 +47,13 @@ agregar_trim_yoy <- function(df_yoy, cols, k = 3) {
     )
 }
 
+# Converte um YoY previsto do trimestre-alvo em QoQ, usando os indices
+# encadeados ja' publicados de t-1 (trimestre anterior) e t-4 (ano antes).
+yoy_para_qoq <- function(yoy_prev, idx_lag1, idx_lag4) {
+  idx_t <- idx_lag4 * (1 + yoy_prev / 100)
+  (idx_t / idx_lag1 - 1) * 100
+}
+
 # ---- 9. Orquestracao ---------------------------------------
 main <- function() {
   cat("[early-read] main() ainda nao implementado\n")

@@ -37,4 +37,9 @@ stopifnot(a_k3b$meses == 1)              # so' janeiro tem dado
 stopifnot(abs(a_k3b$x - 2) < 1e-9)       # media ignora NAs
 cat("OK: agregar_trim_yoy\n")
 
+# yoy_para_qoq: idx_lag4=100, yoy=4 => idx_t=104; idx_lag1=103 => qoq ~ 0.9709
+q4 <- yoy_para_qoq(yoy_prev = 4, idx_lag1 = 103, idx_lag4 = 100)
+stopifnot(abs(q4 - ((104/103 - 1) * 100)) < 1e-9)
+cat("OK: yoy_para_qoq\n")
+
 cat("OK: todos os testes passaram\n")
