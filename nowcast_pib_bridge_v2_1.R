@@ -203,14 +203,29 @@ print(
 
 # ---- 5c. Combinacao de modelos -----------------------------
 # Pesos inversamente proporcionais ao RMSE OOS, calculados por vintage.
+# O AR(1) entra no pool, mas o RMSE dos pesos e' calculado EXCLUINDO a
+# janela COVID (CORTE_COVID_INI..FIM): com o pool completo, a COVID infla
+# o RMSE do AR(1) — que nao ve os mensais — e mata seu peso justamente nos
+# vintages curtos, onde ele estabiliza o ruido das proxies de 1-2 meses.
+# Validado em diag_combo_ar1.R (2026-07-06): RMSE ex-COVID do combo cai em
+# todos os vintages; em rupturas tipo 2020 o combo piora (AR(1) nao ve o
+# colapso) — trade-off aceito, rupturas sao identificaveis em tempo real.
 
 combo_pesos <- eval_vintage %>%
-  filter(modelo != "AR(1)") %>%
+  filter(trim < CORTE_COVID_INI | trim > CORTE_COVID_FIM) %>%
   group_by(vintage, modelo) %>%
   summarise(rmse = sqrt(mean(erro^2, na.rm = TRUE)), .groups = "drop") %>%
   group_by(vintage) %>%
   mutate(peso = (1 / rmse) / sum(1 / rmse)) %>%
   ungroup()
+
+cat("\n========== Pesos do combo por vintage (pool ex-COVID) ==========\n")
+print(
+  combo_pesos %>%
+    select(vintage, modelo, peso) %>%
+    pivot_wider(names_from = modelo, values_from = peso) %>%
+    arrange(vintage)
+)
 
 eval_combo <- eval_vintage %>%
   left_join(combo_pesos %>% select(vintage, modelo, peso),
@@ -497,7 +512,9 @@ if (nrow(trims_fc) == 0) {
     }, error = function(e) NA_real_)
 
     prev_qoq <- c(
-      "AR(1)"   = predict(m_ar1, newdata = linha),
+      # as.numeric: predict() devolve vetor nomeado e o nome contaminaria
+      # o lookup prev_qoq["AR(1)"] no combo (viraria "AR(1).1")
+      "AR(1)"   = as.numeric(predict(m_ar1, newdata = linha)),
       "full v1" = nowcast_parcial(form_full1, dados, linha),
       "full v2" = nowcast_parcial(form_full2, dados, linha),
       "MIDAS"   = if (!is.null(m_midas))  pred_midas_fc else NA_real_,

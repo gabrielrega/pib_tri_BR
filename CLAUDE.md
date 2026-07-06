@@ -41,7 +41,7 @@ The active file is **`nowcast_pib_bridge_v2_1.R`**. All logic lives in one scrip
 
 **UMIDAS requires `start = NULL`**: calling `midas_r()` without a `start` argument raises an error. Always pass `start = NULL` explicitly for UMIDAS.
 
-**Combo weights exclude AR(1)**: `combo_pesos` is computed only over `full v1` and `full v2`. Including AR(1) degrades the combination.
+**Combo includes AR(1), weight pool excludes COVID**: `combo_pesos` is inverse-RMSE over AR(1) + full v1 + full v2, with the RMSE pool excluding the COVID window (`CORTE_COVID_INI`..`CORTE_COVID_FIM`). With the full pool, COVID inflates the AR(1) RMSE and kills its weight exactly where it helps (short vintages) — that was the old reason for excluding AR(1). Validated in `diag_combo_ar1.R` (2026-07-06): ex-COVID combo RMSE improves at every vintage (v1 0.80→0.76, v2 0.76→0.72, v3 0.62→0.59); COVID-inclusive RMSE worsens — accepted trade-off, ruptures are identifiable in real time. Note: `prev_qoq["AR(1)"]` requires the unnamed `as.numeric(predict(...))` in section 7, otherwise the name becomes `AR(1).1` and the combo silently drops it.
 
 ## Limitações conhecidas
 
@@ -53,9 +53,10 @@ no 2026T1 (PIB realizado +1,10% QoQ) as previsões com 1–2 meses ficaram em +0
 +0,6%, porque janeiro veio fraco e março saltou ~10% no IBC-Br. Com os 3 meses o
 erro cai para ~0,05 p.p. Além disso, proxies de 1 mês são muito ruidosas (o sinal
 QoQ de PIM com apenas janeiro foi −15,8%). Não é bug nem erro de especificação — é
-um limite estrutural do método com dados parciais. Melhorias possíveis (não
-implementadas): prever os meses faltantes antes de agregar, ou re-pesar a
-combinação a favor do AR(1)/prior quando `meses_disp < 3`.
+um limite estrutural do método com dados parciais. Mitigação implementada
+(2026-07-06): o combo agora inclui o AR(1) com pesos ex-COVID, que estabiliza
+os vintages curtos (ver "Combo includes AR(1)" acima). Melhoria possível (não
+implementada): prever os meses faltantes antes de agregar.
 
 ## Data sources
 
