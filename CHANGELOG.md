@@ -6,6 +6,19 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Modificado
+- Combo do bridge agora inclui o AR(1), com pesos inverso-RMSE calculados em
+  pool **ex-COVID** (a COVID inflava o RMSE do AR(1) e matava seu peso nos
+  vintages curtos, onde ele estabiliza o ruído das proxies). Validação em
+  `diag_combo_ar1.R`: RMSE ex-COVID do combo cai em todos os vintages
+  (v1 0,80→0,76; v2 0,76→0,72; v3 0,62→0,59); em rupturas tipo 2020 o combo
+  piora — trade-off aceito. Nowcast 2026T2 (k=1) desce de +1,10% para +0,95%.
+
+### Corrigido
+- Nome do elemento AR(1) em `prev_qoq` (seção 7): `predict()` devolvia vetor
+  nomeado e o nome virava `AR(1).1`, o que faria o combo descartar o AR(1)
+  silenciosamente no lookup por nome.
+
 ### Adicionado
 - `RODADAS.md`: registro numerado das rodadas de nowcast (data, alvo, vintage,
   números por modelo, realizado e comentário). Semeado com a retrospectiva do

@@ -11,6 +11,30 @@ recente no topo. Convenções:
 
 ---
 
+## Rodada 3 — 2026-07-06 · alvo: 2026T2 (novo combo com AR(1))
+
+Mesma base de dados da rodada 2; muda só a metodologia do combo (AR(1) entra
+no pool com pesos ex-COVID — ver CHANGELOG e `diag_combo_ar1.R`).
+
+| Modelo | k | QoQ | YoY |
+|---|---|---|---|
+| **Bridge combo (novo)** | 1 | **+0,95%** | +2,42% |
+| full v1 / v2 | 1 | +1,10% / +1,10% | +2,57% / +2,58% |
+| AR(1) | — | +0,61% | +2,08% |
+| Early-read | 2 | +0,62% | +2,09% |
+
+- Pesos do combo em k=1: AR(1) 0,31 / full v1 0,34 / full v2 0,35.
+- **Realizado:** —
+
+**Comentário:** o combo desce de +1,10% para +0,95% ao dar ~30% de peso ao
+AR(1) no vintage curto — exatamente o comportamento desejado da mudança:
+menos fé em proxies de 1 mês, mais âncora no prior. A leitura conjunta com o
+early-read segue em +0,6% a +1,0%. Validação OOS: RMSE ex-COVID do combo cai
+em todos os vintages (v1 0,80→0,76; v2 0,76→0,72; v3 0,62→0,59); em rupturas
+tipo 2020 o combo piora — trade-off aceito conscientemente.
+
+---
+
 ## Rodada 2 — 2026-07-06 · alvo: 2026T2
 
 | Modelo | k | QoQ | YoY |
