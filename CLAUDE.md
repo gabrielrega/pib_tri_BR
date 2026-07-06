@@ -10,6 +10,8 @@ Rscript nowcast_pib_bridge_v2_1.R
 
 The script is self-contained: it installs missing packages on first run, downloads all data live from IBGE/SIDRA and BCB/SGS, and prints results to stdout. Runtime is ~3–5 minutes due to the MIDAS rolling OOS loop. Diagnostic scripts (`diag_*.R`) in the root are throwaway test files and can be ignored or deleted.
 
+**Registro de rodadas**: após cada rodada de nowcast que produza uma leitura nova (novo vintage ou novo trimestre), anexar uma entrada numerada em `RODADAS.md` (mais recente no topo) com data, alvo, k, números por modelo e comentário. Quando o IBGE publicar o trimestre, preencher o campo **Realizado** da(s) rodada(s) correspondente(s) e comentar o erro.
+
 ## Architecture
 
 The active file is **`nowcast_pib_bridge_v2_1.R`**. All logic lives in one script, structured in numbered sections:

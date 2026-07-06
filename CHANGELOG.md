@@ -6,6 +6,12 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### Adicionado
+- `RODADAS.md`: registro numerado das rodadas de nowcast (data, alvo, vintage,
+  números por modelo, realizado e comentário). Semeado com a retrospectiva do
+  2026T1 e a primeira leitura do 2026T2 (2026-07-06: early-read k=2 +0,62%;
+  bridge combo k=1 +1,10%).
+
 ## [0.2.0] - 2026-06-03
 
 ### Adicionado
